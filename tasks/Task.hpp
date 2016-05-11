@@ -4,6 +4,8 @@
 #define IMU_AN_SPATIAL_TASK_TASK_HPP
 
 #include "imu_an_spatial/TaskBase.hpp"
+#include <imu_an_spatial/an_packet_protocol.h>
+#include <imu_an_spatial/spatial_packets.h>
 
 namespace imu_an_spatial{
 
@@ -29,7 +31,14 @@ tasks/Task.cpp, and will be put in the imu_an_spatial namespace.
 	friend class TaskBase;
     protected:
 
+    an_decoder_t an_decoder;
+    an_packet_t *an_packet;
 
+    system_state_packet_t system_state_packet;
+    raw_sensors_packet_t raw_sensors_packet;
+
+    int bytes_received;
+    int fd;
 
     public:
         /** TaskContext constructor for Task
