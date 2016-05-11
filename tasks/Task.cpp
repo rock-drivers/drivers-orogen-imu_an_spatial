@@ -5,6 +5,7 @@
 #include <math.h>
 #include <imu_an_spatial/rs232/rs232.h>
 #include <base/logging.h>
+#include <base/Time.hpp>
 #include <iostream>
 
 
@@ -48,8 +49,6 @@ bool Task::configureHook()
 }
 bool Task::startHook()
 {
-    // Here, "fd" is the file descriptor of the underlying device
-    // it is usually created in configureHook()
     RTT::extras::FileDescriptorActivity* activity =
     getActivity<RTT::extras::FileDescriptorActivity>();
 
@@ -63,6 +62,9 @@ void Task::updateHook()
 {
     RTT::extras::FileDescriptorActivity* fd_activity =
             getActivity<RTT::extras::FileDescriptorActivity>();
+
+    base::samples::IMUSensors imu_sample;
+    base::samples::RigidBodyState imu_pose;
 
     if (fd_activity)
     {
@@ -90,9 +92,19 @@ void Task::updateHook()
                         /* this allows easy access to all the different values             */
                         if(decode_system_state_packet(&system_state_packet, an_packet) == 0)
                         {
-                            printf("System State Packet:\n");
-                            printf("\tLatitude = %f, Longitude = %f, Height = %f\n", system_state_packet.latitude * RADIANS_TO_DEGREES, system_state_packet.longitude * RADIANS_TO_DEGREES, system_state_packet.height);
-                            printf("\tRoll = %f, Pitch = %f, Heading = %f\n", system_state_packet.orientation[0] * RADIANS_TO_DEGREES, system_state_packet.orientation[1] * RADIANS_TO_DEGREES, system_state_packet.orientation[2] * RADIANS_TO_DEGREES);
+                            imu_pose.time = base::Time::now();
+                            imu_pose.sourceFrame = _sourceFrame.get();
+                            imu_pose.targetFrame = _targetFrame.get();
+                            //TODO lat/long to cartesian, lat/long/height standard deviation, etc.
+                            //TODO check for right-handedness of yaw / heading
+                            //imu_pose.orientation = base::Vector3d(system_state_packet.orientation[0],system_state_packet.orientation[1],system_state_packet.orientation[2]);
+                            imu_pose.velocity = base::Vector3d(system_state_packet.velocity[0],system_state_packet.velocity[1],system_state_packet.velocity[2]);
+                            imu_pose.angular_velocity = base::Vector3d(system_state_packet.angular_velocity[0],system_state_packet.angular_velocity[1],system_state_packet.angular_velocity[2]);
+                            _imu_pose.write(imu_pose);
+                            
+                            LOG_INFO("System State Packet:\n");
+                            LOG_INFO("\tLatitude = %f, Longitude = %f, Height = %f\n", system_state_packet.latitude * RADIANS_TO_DEGREES, system_state_packet.longitude * RADIANS_TO_DEGREES, system_state_packet.height);
+                            LOG_INFO("\tRoll = %f, Pitch = %f, Heading = %f\n", system_state_packet.orientation[0] * RADIANS_TO_DEGREES, system_state_packet.orientation[1] * RADIANS_TO_DEGREES, system_state_packet.orientation[2] * RADIANS_TO_DEGREES);
                         }
                     }
                     else if (an_packet->id == packet_id_raw_sensors) /* raw sensors packet */
@@ -101,14 +113,20 @@ void Task::updateHook()
                         /* this allows easy access to all the different values             */
                         if(decode_raw_sensors_packet(&raw_sensors_packet, an_packet) == 0)
                         {
-                            printf("Raw Sensors Packet:\n");
-                            printf("\tAccelerometers X: %f Y: %f Z: %f\n", raw_sensors_packet.accelerometers[0], raw_sensors_packet.accelerometers[1], raw_sensors_packet.accelerometers[2]);
-                            printf("\tGyroscopes X: %f Y: %f Z: %f\n", raw_sensors_packet.gyroscopes[0] * RADIANS_TO_DEGREES, raw_sensors_packet.gyroscopes[1] * RADIANS_TO_DEGREES, raw_sensors_packet.gyroscopes[2] * RADIANS_TO_DEGREES);
+                            imu_sample.time = base::Time::now();
+                            imu_sample.acc = base::Vector3d(raw_sensors_packet.accelerometers[0], raw_sensors_packet.accelerometers[1], raw_sensors_packet.accelerometers[2]);
+                            imu_sample.gyro = base::Vector3d(raw_sensors_packet.gyroscopes[0], raw_sensors_packet.gyroscopes[1], raw_sensors_packet.gyroscopes[2]);
+                            imu_sample.mag = base::Vector3d(raw_sensors_packet.magnetometers[0], raw_sensors_packet.magnetometers[1], raw_sensors_packet.magnetometers[2]);
+                            _imu_samples.write(imu_sample);
+
+                            LOG_INFO("Raw Sensors Packet:\n");
+                            LOG_INFO("\tAccelerometers X: %f Y: %f Z: %f\n", raw_sensors_packet.accelerometers[0], raw_sensors_packet.accelerometers[1], raw_sensors_packet.accelerometers[2]);
+                            LOG_INFO("\tGyroscopes X: %f Y: %f Z: %f\n", raw_sensors_packet.gyroscopes[0] * RADIANS_TO_DEGREES, raw_sensors_packet.gyroscopes[1] * RADIANS_TO_DEGREES, raw_sensors_packet.gyroscopes[2] * RADIANS_TO_DEGREES);
                         }
                     }
                     else
                     {
-                        printf("Packet ID %u of Length %u\n", an_packet->id, an_packet->length);
+                        LOG_INFO("Packet ID %u of Length %u\n", an_packet->id, an_packet->length);
                     }
 
                     /* Ensure that you free the an_packet when your done with it or you will leak memory */

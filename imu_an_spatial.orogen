@@ -30,6 +30,8 @@ task_context "Task" do
     # in the C++ code with # _config_value.get() and _config_value.set(new_value).
     property "port", "/std/string"
     property "baudrate", "int", 115200
+    property "sourceFrame", "/std/string"
+    property "targetFrame", "/std/string"
 
     # An input port, i.e. an object from which the component gets data from
     # other components' outputs
