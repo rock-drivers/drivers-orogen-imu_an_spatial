@@ -43,7 +43,7 @@ task_context "Task" do
     #
     # Data can be written using _output.write(value). _output.connected() returns
     # if this output is connected to an input or not.
-    output_port "imu_samples", "base/samles/IMUSensors"
+    output_port "imu_samples", "base/samples/IMUSensors"
     output_port "imu_pose", "base/samples/RigidBodyState"
 
     # If you want that component's updateHook() to be executed when the "input"
