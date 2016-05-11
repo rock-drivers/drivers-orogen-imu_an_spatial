@@ -28,7 +28,8 @@ task_context "Task" do
 
     # A configuration property (here, a std::string). Its value can be retrieved
     # in the C++ code with # _config_value.get() and _config_value.set(new_value).
-    property "port_uri", "/std/string"
+    property "port", "/std/string"
+    property "baudrate", "int", 115200
 
     # An input port, i.e. an object from which the component gets data from
     # other components' outputs
