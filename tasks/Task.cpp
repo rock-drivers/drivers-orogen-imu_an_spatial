@@ -7,7 +7,7 @@
 #include <base/logging.h>
 #include <base/Time.hpp>
 #include <iostream>
-
+#include <Eigen/Core>
 
 #define RADIANS_TO_DEGREES (180.0/M_PI)
 
@@ -26,12 +26,6 @@ Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
 Task::~Task()
 {
 }
-
-
-
-/// The following lines are template definitions for the various state machine
-// hooks defined by Orocos::RTT. See Task.hpp for more detailed
-// documentation about them.
 
 bool Task::configureHook()
 {
@@ -95,11 +89,28 @@ void Task::updateHook()
                             imu_pose.time = base::Time::now();
                             imu_pose.sourceFrame = _sourceFrame.get();
                             imu_pose.targetFrame = _targetFrame.get();
-                            //TODO lat/long to cartesian, lat/long/height standard deviation, etc.
-                            //TODO check for right-handedness of yaw / heading
-                            //imu_pose.orientation = base::Vector3d(system_state_packet.orientation[0],system_state_packet.orientation[1],system_state_packet.orientation[2]);
+                            //TODO lat/long to which cartesian frame, use standard deviation, etc.
+
+                            Eigen::Vector3d or_ned(system_state_packet.orientation[0], system_state_packet.orientation[1], system_state_packet.orientation[2]);
+                            //create rotation matrix to convert NED to NWU
+                            Eigen::Matrix3d ned2nwu;
+                            ned2nwu << 1, 0 , 0,
+                                       0, -1, 0,
+                                       0, 0, -1;
+
+                            // convert orientation from NED to NWU
+                            Eigen::Vector3d or_nwu = ned2nwu * or_ned;
+                            // construct quaternion from euler angles, Tait-Bryan zxy
+                            base::Orientation qx,qy,qz;
+                            qx = Eigen::AngleAxisd(or_nwu[0], Eigen::Vector3d::UnitX());
+                            qy = Eigen::AngleAxisd(or_nwu[1], Eigen::Vector3d::UnitY());
+                            qz = Eigen::AngleAxisd(or_nwu[2], Eigen::Vector3d::UnitZ());
+                            imu_pose.orientation =  qx * qy * qz; 
+                            
                             imu_pose.velocity = base::Vector3d(system_state_packet.velocity[0],system_state_packet.velocity[1],system_state_packet.velocity[2]);
+
                             imu_pose.angular_velocity = base::Vector3d(system_state_packet.angular_velocity[0],system_state_packet.angular_velocity[1],system_state_packet.angular_velocity[2]);
+
                             _imu_pose.write(imu_pose);
                             
                             LOG_INFO("System State Packet:\n");
