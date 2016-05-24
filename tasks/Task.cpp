@@ -91,25 +91,30 @@ void Task::updateHook()
                             imu_pose.targetFrame = _targetFrame.get();
                             //TODO lat/long to which cartesian frame, use standard deviation, etc.
 
-                            Eigen::Vector3d or_ned(system_state_packet.orientation[0], system_state_packet.orientation[1], system_state_packet.orientation[2]);
                             //create rotation matrix to convert NED to NWU
                             Eigen::Matrix3d ned2nwu;
                             ned2nwu << 1, 0 , 0,
                                        0, -1, 0,
                                        0, 0, -1;
 
-                            // convert orientation from NED to NWU
-                            Eigen::Vector3d or_nwu = ned2nwu * or_ned;
+                            // convert orientation from NED to NWU, if required by property NED2NWU
+                            base::Vector3d ori_ned(system_state_packet.orientation[0], system_state_packet.orientation[1], system_state_packet.orientation[2]);
+                            base::Vector3d ori = _NED2NWU ? ned2nwu * ori_ned : ori_ned;
+
                             // construct quaternion from euler angles, Tait-Bryan zxy
                             base::Orientation qx,qy,qz;
-                            qx = Eigen::AngleAxisd(or_nwu[0], Eigen::Vector3d::UnitX());
-                            qy = Eigen::AngleAxisd(or_nwu[1], Eigen::Vector3d::UnitY());
-                            qz = Eigen::AngleAxisd(or_nwu[2], Eigen::Vector3d::UnitZ());
+                            qx = Eigen::AngleAxisd(ori[0], Eigen::Vector3d::UnitX());
+                            qy = Eigen::AngleAxisd(ori[1], Eigen::Vector3d::UnitY());
+                            qz = Eigen::AngleAxisd(ori[2], Eigen::Vector3d::UnitZ());
                             imu_pose.orientation =  qx * qy * qz; 
-                            
-                            imu_pose.velocity = base::Vector3d(system_state_packet.velocity[0],system_state_packet.velocity[1],system_state_packet.velocity[2]);
 
-                            imu_pose.angular_velocity = base::Vector3d(system_state_packet.angular_velocity[0],system_state_packet.angular_velocity[1],system_state_packet.angular_velocity[2]);
+                            // convert velocity from NED to NWU, if required by property NED2NWU
+                            base::Vector3d vel_ned = base::Vector3d(system_state_packet.velocity[0],system_state_packet.velocity[1],system_state_packet.velocity[2]);
+                            imu_pose.velocity = _NED2NWU ? ned2nwu * vel_ned : vel_ned;
+
+                            // convert angular velocity from NED to NWU, if required by property NED2NWU
+                            base::Vector3d angular_velocity_ned = base::Vector3d(system_state_packet.angular_velocity[0],system_state_packet.angular_velocity[1],system_state_packet.angular_velocity[2]);
+                            imu_pose.angular_velocity = _NED2NWU ? ned2nwu * angular_velocity_ned : angular_velocity_ned;
 
                             _imu_pose.write(imu_pose);
                             
@@ -124,10 +129,22 @@ void Task::updateHook()
                         /* this allows easy access to all the different values             */
                         if(decode_raw_sensors_packet(&raw_sensors_packet, an_packet) == 0)
                         {
+                            base::Vector3d acc, gyro, mag;
+
                             imu_sample.time = base::Time::now();
-                            imu_sample.acc = base::Vector3d(raw_sensors_packet.accelerometers[0], raw_sensors_packet.accelerometers[1], raw_sensors_packet.accelerometers[2]);
-                            imu_sample.gyro = base::Vector3d(raw_sensors_packet.gyroscopes[0], raw_sensors_packet.gyroscopes[1], raw_sensors_packet.gyroscopes[2]);
-                            imu_sample.mag = base::Vector3d(raw_sensors_packet.magnetometers[0], raw_sensors_packet.magnetometers[1], raw_sensors_packet.magnetometers[2]);
+                            
+                            acc = base::Vector3d(raw_sensors_packet.accelerometers[0], raw_sensors_packet.accelerometers[1], raw_sensors_packet.accelerometers[2]);
+                            gyro = base::Vector3d(raw_sensors_packet.gyroscopes[0], raw_sensors_packet.gyroscopes[1], raw_sensors_packet.gyroscopes[2]);
+                            mag = base::Vector3d(raw_sensors_packet.magnetometers[0], raw_sensors_packet.magnetometers[1], raw_sensors_packet.magnetometers[2]);
+
+                            //change axis convention depending on property(NED to NWU)
+                            Eigen::Matrix3d ned2nwu;
+                            ned2nwu << 1, 0 , 0,
+                                       0, -1, 0,
+                                       0, 0, -1;
+                            imu_sample.acc = _NED2NWU ? ned2nwu * acc : acc; 
+                            imu_sample.gyro = _NED2NWU ? ned2nwu * gyro : gyro;
+                            imu_sample.mag = _NED2NWU ? ned2nwu * mag : mag; 
                             _imu_samples.write(imu_sample);
 
                             LOG_INFO("Raw Sensors Packet:\n");

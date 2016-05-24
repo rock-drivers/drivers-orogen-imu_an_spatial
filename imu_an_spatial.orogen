@@ -28,10 +28,12 @@ task_context "Task" do
 
     # A configuration property (here, a std::string). Its value can be retrieved
     # in the C++ code with # _config_value.get() and _config_value.set(new_value).
-    property "port", "/std/string"
-    property "baudrate", "int", 115200
-    property "sourceFrame", "/std/string"
-    property "targetFrame", "/std/string"
+    property("port", "/std/string").doc 'Port the device is connected to'
+    property("baudrate", "int", 115200).doc 'Serial device baudrate'
+    property("sourceFrame", "/std/string").doc 'IMU pose source frame'
+    property("targetFrame", "/std/string").doc 'IMU pose target frame'
+    property("NED2NWU", "bool", true).
+        doc 'Switch IMU axis convention from NED(Advanced Navigation default) to NWU(Rock default)' 
 
     # An input port, i.e. an object from which the component gets data from
     # other components' outputs
