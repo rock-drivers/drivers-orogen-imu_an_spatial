@@ -125,6 +125,19 @@ void Task::updateHook()
                             // writing to the gps solution port
                             //TODO lat/long to which UTM? see drivers/orogen/gps and gdal UTM methods
                             //TODO set GNSS fix type from system state packet 
+
+                            gnss_fix_type_e gnss_fix_type = static_cast<gnss_fix_type_e>(system_state_packet.filter_status.b.gnss_fix_type);
+                            switch(gnss_fix_type){
+                                case gnss_fix_none: sol.positionType = gps::NO_SOLUTION; break;
+                                case gnss_fix_2d: sol.positionType = gps::AUTONOMOUS_2D; break;
+                                case gnss_fix_3d: sol.positionType = gps::AUTONOMOUS; break;
+                                case gnss_fix_sbas: sol.positionType = gps::DIFFERENTIAL; break;
+                                case gnss_fix_differential: sol.positionType = gps::DIFFERENTIAL; break;
+                                case gnss_fix_rtk_float: sol.positionType = gps::RTK_FLOAT; break;
+                                case gnss_fix_rtk_fixed: sol.positionType = gps::RTK_FIXED; break;
+                                default: sol.positionType = gps::INVALID; break;
+                            }
+
                             sol.latitude = system_state_packet.latitude;
                             sol.longitude = system_state_packet.longitude;
                             sol.altitude = system_state_packet.height;
