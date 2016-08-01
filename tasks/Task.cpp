@@ -59,6 +59,7 @@ void Task::updateHook()
 
     base::samples::IMUSensors imu_sample;
     base::samples::RigidBodyState imu_pose;
+    gps::Solution sol;
 
     if (fd_activity)
     {
@@ -86,10 +87,9 @@ void Task::updateHook()
                         /* this allows easy access to all the different values             */
                         if(decode_system_state_packet(&system_state_packet, an_packet) == 0)
                         {
-                            imu_pose.time = base::Time::now();
+                            imu_pose.time = sol.time = base::Time::now();
                             imu_pose.sourceFrame = _sourceFrame.get();
                             imu_pose.targetFrame = _targetFrame.get();
-                            //TODO lat/long to which cartesian frame, use standard deviation, etc.
 
                             //create rotation matrix to convert NED to NWU
                             Eigen::Matrix3d ned2nwu;
@@ -121,6 +121,17 @@ void Task::updateHook()
                             LOG_INFO("System State Packet:\n");
                             LOG_INFO("\tLatitude = %f, Longitude = %f, Height = %f\n", system_state_packet.latitude * RADIANS_TO_DEGREES, system_state_packet.longitude * RADIANS_TO_DEGREES, system_state_packet.height);
                             LOG_INFO("\tRoll = %f, Pitch = %f, Heading = %f\n", system_state_packet.orientation[0] * RADIANS_TO_DEGREES, system_state_packet.orientation[1] * RADIANS_TO_DEGREES, system_state_packet.orientation[2] * RADIANS_TO_DEGREES);
+
+                            // writing to the gps solution port
+                            //TODO lat/long to which UTM? see drivers/orogen/gps and gdal UTM methods
+                            //TODO set GNSS fix type from system state packet 
+                            sol.latitude = system_state_packet.latitude;
+                            sol.longitude = system_state_packet.longitude;
+                            sol.altitude = system_state_packet.height;
+                            sol.deviationLatitude = system_state_packet.standard_deviation[0] * system_state_packet.standard_deviation[0];
+                            sol.deviationLongitude = system_state_packet.standard_deviation[1] * system_state_packet.standard_deviation[1];
+                            sol.deviationAltitude = system_state_packet.standard_deviation[2] * system_state_packet.standard_deviation[2];
+                            _gps_solution.write(sol);
                         }
                     }
                     else if (an_packet->id == packet_id_raw_sensors) /* raw sensors packet */
