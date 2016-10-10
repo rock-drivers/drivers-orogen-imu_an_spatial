@@ -98,6 +98,7 @@ void Task::updateHook()
                                        0, 0, -1;
 
                             // convert orientation from NED to NWU, if required by property NED2NWU
+                            // TODO use gimbal lock free quaternion_orientation_packet 
                             base::Vector3d ori_ned(system_state_packet.orientation[0], system_state_packet.orientation[1], system_state_packet.orientation[2]);
                             base::Vector3d ori = _NED2NWU ? ned2nwu * ori_ned : ori_ned;
 
@@ -147,6 +148,28 @@ void Task::updateHook()
                             _gps_solution.write(sol);
                         }
                     }
+                    else if (an_packet->id == packet_id_quaternion_orientation)
+                    {
+                        /* copy all the binary data into the typedef struct for the packet */
+                        /* this allows easy access to all the different values             */
+                        if(decode_quaternion_orientation_packet(&quaternion_orientation_packet, an_packet) == 0)
+                        {
+                            //TODO use info from state packet and quaternion packet in same port msg, fix times
+                           
+                            imu_pose.time = base::Time::now();
+                            imu_pose.sourceFrame = _sourceFrame.get();
+                            imu_pose.targetFrame = _targetFrame.get();
+                            //TODO regard the _NED2NWU axes convention flag 
+                            imu_pose.orientation = base::Quaterniond(quaternion_orientation_packet.orientation[0],
+                                                quaternion_orientation_packet.orientation[1],
+                                                quaternion_orientation_packet.orientation[2],
+                                                quaternion_orientation_packet.orientation[3]);
+
+                            _imu_pose.write(imu_pose);
+                           
+                        }
+                    }
+
                     else if (an_packet->id == packet_id_raw_sensors) /* raw sensors packet */
                     {
                         /* copy all the binary data into the typedef struct for the packet */

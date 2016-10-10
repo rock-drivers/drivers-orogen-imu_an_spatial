@@ -36,6 +36,8 @@ tasks/Task.cpp, and will be put in the imu_an_spatial namespace.
 
     system_state_packet_t system_state_packet;
     raw_sensors_packet_t raw_sensors_packet;
+    quaternion_orientation_packet_t quaternion_orientation_packet;
+    quaternion_orientation_standard_deviation_packet_t quaternion_orientation_standard_deviation_packet;
 
     int bytes_received;
     int fd;
