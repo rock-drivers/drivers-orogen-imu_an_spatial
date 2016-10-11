@@ -150,8 +150,6 @@ void Task::updateHook()
                     }
                     else if (an_packet->id == packet_id_quaternion_orientation)
                     {
-                        /* copy all the binary data into the typedef struct for the packet */
-                        /* this allows easy access to all the different values             */
                         if(decode_quaternion_orientation_packet(&quaternion_orientation_packet, an_packet) == 0)
                         {
                             //TODO use info from state packet and quaternion packet in same port msg, fix times
@@ -159,11 +157,17 @@ void Task::updateHook()
                             imu_pose.time = base::Time::now();
                             imu_pose.sourceFrame = _sourceFrame.get();
                             imu_pose.targetFrame = _targetFrame.get();
-                            //TODO regard the _NED2NWU axes convention flag 
-                            imu_pose.orientation = base::Quaterniond(quaternion_orientation_packet.orientation[0],
+
+                            base::Orientation q = base::Quaterniond(quaternion_orientation_packet.orientation[0],
                                                 quaternion_orientation_packet.orientation[1],
                                                 quaternion_orientation_packet.orientation[2],
                                                 quaternion_orientation_packet.orientation[3]);
+
+                            //TODO Definetly check if this does what it should (NED2NWU)
+                            Eigen::Quaternion<double, Eigen::DontAlign> ned2nwu_q;
+                            ned2nwu_q = base::AngleAxisd(M_PI, Eigen::Vector3d::UnitX());
+                            if(_NED2NWU) imu_pose.orientation = ned2nwu_q * q;
+                            else imu_pose.orientation = q; 
 
                             _imu_pose.write(imu_pose);
                            
@@ -172,8 +176,6 @@ void Task::updateHook()
 
                     else if (an_packet->id == packet_id_raw_sensors) /* raw sensors packet */
                     {
-                        /* copy all the binary data into the typedef struct for the packet */
-                        /* this allows easy access to all the different values             */
                         if(decode_raw_sensors_packet(&raw_sensors_packet, an_packet) == 0)
                         {
                             base::Vector3d acc, gyro, mag;
