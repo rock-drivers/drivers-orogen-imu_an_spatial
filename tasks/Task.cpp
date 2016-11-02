@@ -117,7 +117,8 @@ void Task::updateHook()
                             base::Vector3d angular_velocity_ned = base::Vector3d(system_state_packet.angular_velocity[0],system_state_packet.angular_velocity[1],system_state_packet.angular_velocity[2]);
                             imu_pose.angular_velocity = _NED2NWU ? ned2nwu * angular_velocity_ned : angular_velocity_ned;
 
-                            _imu_pose.write(imu_pose);
+                            //TODO check NWU NED stuff, right now using dedicated quaternion packet from IMU (see below)
+                            //_imu_pose.write(imu_pose);
                             
                             LOG_INFO("System State Packet:\n");
                             LOG_INFO("\tLatitude = %f, Longitude = %f, Height = %f\n", system_state_packet.latitude * RADIANS_TO_DEGREES, system_state_packet.longitude * RADIANS_TO_DEGREES, system_state_packet.height);
@@ -139,8 +140,9 @@ void Task::updateHook()
                                 default: sol.positionType = gps::INVALID; break;
                             }
 
-                            sol.latitude = system_state_packet.latitude;
-                            sol.longitude = system_state_packet.longitude;
+                            sol.latitude = system_state_packet.latitude * RADIANS_TO_DEGREES;
+                            sol.longitude = system_state_packet.longitude * RADIANS_TO_DEGREES;
+                            LOG_INFO("SYS STATE PACKET LAT/LON",system_state_packet.latitude,system_state_packet.longitude);
                             sol.altitude = system_state_packet.height;
                             sol.deviationLatitude = system_state_packet.standard_deviation[0] * system_state_packet.standard_deviation[0];
                             sol.deviationLongitude = system_state_packet.standard_deviation[1] * system_state_packet.standard_deviation[1];
@@ -157,6 +159,11 @@ void Task::updateHook()
                             imu_pose.time = base::Time::now();
                             imu_pose.sourceFrame = _sourceFrame.get();
                             imu_pose.targetFrame = _targetFrame.get();
+
+                            //LOG_WARN("Quat packet: [%8.2f,%8.2f,%8.2f,%8.2f]",quaternion_orientation_packet.orientation[0],
+                            //        quaternion_orientation_packet.orientation[1], 
+                            //        quaternion_orientation_packet.orientation[2],
+                            //        quaternion_orientation_packet.orientation[3]);
 
                             base::Orientation q = base::Quaterniond(quaternion_orientation_packet.orientation[0],
                                                 quaternion_orientation_packet.orientation[1],
