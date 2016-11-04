@@ -6,6 +6,7 @@
 #include "imu_an_spatial/TaskBase.hpp"
 #include <imu_an_spatial/an_packet_protocol.h>
 #include <imu_an_spatial/spatial_packets.h>
+#include <GeographicLib/LocalCartesian.hpp>
 
 namespace imu_an_spatial{
 
@@ -30,6 +31,9 @@ tasks/Task.cpp, and will be put in the imu_an_spatial namespace.
     {
 	friend class TaskBase;
     protected:
+    
+    GeographicLib::LocalCartesian* lc;
+                            double lat, lon, height;
 
     an_decoder_t an_decoder;
     an_packet_t *an_packet;

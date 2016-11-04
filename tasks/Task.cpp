@@ -8,10 +8,12 @@
 #include <base/Time.hpp>
 #include <iostream>
 #include <Eigen/Core>
+#include <GeographicLib/Geocentric.hpp>
 
 #define RADIANS_TO_DEGREES (180.0/M_PI)
 
 using namespace imu_an_spatial;
+using namespace GeographicLib;
 
 Task::Task(std::string const& name)
     : TaskBase(name)
@@ -36,6 +38,10 @@ bool Task::configureHook()
     }
     fd = getFileDescriptor();
     an_decoder_initialise(&an_decoder);
+
+    Geocentric earth(Constants::WGS84_a(),Constants::WGS84_f());
+    base::Vector3d origin = _local_cartesian_origin.get();
+    lc = new LocalCartesian(origin[0],origin[1],origin[2],earth);
 
     if (! TaskBase::configureHook())
         return false;
@@ -118,15 +124,19 @@ void Task::updateHook()
                             imu_pose.angular_velocity = _NED2NWU ? ned2nwu * angular_velocity_ned : angular_velocity_ned;
 
                             //TODO check NWU NED stuff, right now using dedicated quaternion packet from IMU (see below)
-                            //_imu_pose.write(imu_pose);
+                            lat = system_state_packet.latitude * RADIANS_TO_DEGREES;
+                            lon = system_state_packet.longitude * RADIANS_TO_DEGREES;
+                            height = system_state_packet.height;
+
+                            double x,y,z;
+                            lc->Forward(lat,lon,height,x,y,z);
+                            imu_pose.position = base::Vector3d(x,y,z);
+                            _imu_pose.write(imu_pose);
                             
                             LOG_INFO("System State Packet:\n");
                             LOG_INFO("\tLatitude = %f, Longitude = %f, Height = %f\n", system_state_packet.latitude * RADIANS_TO_DEGREES, system_state_packet.longitude * RADIANS_TO_DEGREES, system_state_packet.height);
                             LOG_INFO("\tRoll = %f, Pitch = %f, Heading = %f\n", system_state_packet.orientation[0] * RADIANS_TO_DEGREES, system_state_packet.orientation[1] * RADIANS_TO_DEGREES, system_state_packet.orientation[2] * RADIANS_TO_DEGREES);
 
-                            // writing to the gps solution port
-                            //TODO lat/long to which UTM? see drivers/orogen/gps and gdal UTM methods
-                            //TODO set GNSS fix type from system state packet 
 
                             gnss_fix_type_e gnss_fix_type = static_cast<gnss_fix_type_e>(system_state_packet.filter_status.b.gnss_fix_type);
                             switch(gnss_fix_type){
@@ -176,6 +186,9 @@ void Task::updateHook()
                             if(_NED2NWU) imu_pose.orientation = ned2nwu_q * q;
                             else imu_pose.orientation = q; 
 
+                            double x,y,z;
+                            lc->Forward(lat,lon,height,x,y,z);
+                            imu_pose.position = base::Vector3d(x,y,z);
                             _imu_pose.write(imu_pose);
                            
                         }

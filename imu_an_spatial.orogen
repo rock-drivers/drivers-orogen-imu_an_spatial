@@ -37,6 +37,7 @@ task_context "Task" do
     property("targetFrame", "/std/string").doc 'IMU pose target frame'
     property("NED2NWU", "bool", true).
         doc 'Switch IMU axis convention from NED(Advanced Navigation default) to NWU(Rock default)' 
+    property("local_cartesian_origin", "base/Vector3d").doc("Origin of local cartesion coordinate system in lat/lon/height")
 
     # An input port, i.e. an object from which the component gets data from
     # other components' outputs
