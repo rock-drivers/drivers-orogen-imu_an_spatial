@@ -103,17 +103,16 @@ void Task::updateHook()
                                        0, -1, 0,
                                        0, 0, -1;
 
-                            // convert orientation from NED to NWU, if required by property NED2NWU
-                            // TODO use gimbal lock free quaternion_orientation_packet 
-                            base::Vector3d ori_ned(system_state_packet.orientation[0], system_state_packet.orientation[1], system_state_packet.orientation[2]);
-                            base::Vector3d ori = _NED2NWU ? ned2nwu * ori_ned : ori_ned;
+                            //base::Vector3d ori_ned(system_state_packet.orientation[0], system_state_packet.orientation[1], system_state_packet.orientation[2]);
+                            //base::Vector3d ori = _NED2NWU ? ned2nwu * ori_ned : ori_ned;
 
-                            // construct quaternion from euler angles, Tait-Bryan zxy
-                            base::Orientation qx,qy,qz;
-                            qx = Eigen::AngleAxisd(ori[0], Eigen::Vector3d::UnitX());
-                            qy = Eigen::AngleAxisd(ori[1], Eigen::Vector3d::UnitY());
-                            qz = Eigen::AngleAxisd(ori[2], Eigen::Vector3d::UnitZ());
-                            imu_pose.orientation =  qx * qy * qz; 
+                            //// construct quaternion from euler angles, Tait-Bryan zxy
+                            //base::Orientation qx,qy,qz;
+                            //qx = Eigen::AngleAxisd(ori[0], Eigen::Vector3d::UnitX());
+                            //qy = Eigen::AngleAxisd(ori[1], Eigen::Vector3d::UnitY());
+                            //qz = Eigen::AngleAxisd(ori[2], Eigen::Vector3d::UnitZ());
+                            //imu_pose.orientation =  qx * qy * qz; 
+                            imu_pose.orientation = ori;
 
                             // convert velocity from NED to NWU, if required by property NED2NWU
                             base::Vector3d vel_ned = base::Vector3d(system_state_packet.velocity[0],system_state_packet.velocity[1],system_state_packet.velocity[2]);
@@ -183,8 +182,9 @@ void Task::updateHook()
                             //TODO Definetly check if this does what it should (NED2NWU)
                             Eigen::Quaternion<double, Eigen::DontAlign> ned2nwu_q;
                             ned2nwu_q = base::AngleAxisd(M_PI, Eigen::Vector3d::UnitX());
-                            if(_NED2NWU) imu_pose.orientation = ned2nwu_q * q;
-                            else imu_pose.orientation = q; 
+                            if(_NED2NWU) ori = ned2nwu_q * q;
+                            else ori = q; 
+                            imu_pose.orientation = ori;
 
                             double x,y,z;
                             lc->Forward(lat,lon,height,x,y,z);

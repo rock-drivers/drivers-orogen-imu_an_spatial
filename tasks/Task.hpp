@@ -33,7 +33,9 @@ tasks/Task.cpp, and will be put in the imu_an_spatial namespace.
     protected:
     
     GeographicLib::LocalCartesian* lc;
-                            double lat, lon, height;
+    double lat, lon, height;
+    base::Orientation ori;
+
 
     an_decoder_t an_decoder;
     an_packet_t *an_packet;
