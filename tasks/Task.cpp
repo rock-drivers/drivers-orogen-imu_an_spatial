@@ -89,7 +89,7 @@ void Task::updateHook()
         }
         else
         {
-            while(_external_velocity_in.read(external_velocity)){
+            while(_external_velocity_in.read(external_velocity) == RTT::NewData){
                 an_packet_t* an_packet;
                 external_body_velocity_packet_t body_vel_packet;
                 memset(&body_vel_packet, 0, sizeof(external_body_velocity_packet_t));
