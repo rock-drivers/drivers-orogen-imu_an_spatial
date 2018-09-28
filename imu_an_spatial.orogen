@@ -11,14 +11,13 @@ version "0.1"
 # conventions, a common use-case would be:
 #
 using_library "imu_an_spatial"
-using_library "mb500"
+import_types_from "gps_base"
 
 # import_types_from "imu_an_spatial/CustomType.hpp"
 
 # If this project uses data types that are defined in other oroGen projects,
 # these projects should be imported there as well.
 import_types_from "base"
-import_types_from "gps_types.hh"
 
 # Declare a new task context (i.e., a component)
 #
@@ -54,7 +53,7 @@ task_context "Task" do
     # if this output is connected to an input or not.
     output_port "imu_samples", "base/samples/IMUSensors"
     output_port "imu_pose", "base/samples/RigidBodyState"
-    output_port "gps_solution", "/gps/Solution"
+    output_port "gps_solution", "/gps_base/Solution"
 
     # If you want that component's updateHook() to be executed when the "input"
     # port gets data, uncomment this and comment the 'periodic' line
