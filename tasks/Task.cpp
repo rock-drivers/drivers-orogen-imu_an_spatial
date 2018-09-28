@@ -4,6 +4,7 @@
 #include <rtt/extras/FileDescriptorActivity.hpp>
 #include <math.h>
 #include <imu_an_spatial/rs232/rs232.h>
+#include <imu_an_spatial/an_packet_protocol.h>
 #include <base-logging/Logging.hpp>
 #include <base/Time.hpp>
 #include <iostream>
@@ -14,6 +15,12 @@
 
 using namespace imu_an_spatial;
 using namespace GeographicLib;
+
+int an_packet_transmit(an_packet_t *an_packet)
+{
+    an_packet_encode(an_packet);
+    return SendBuf(an_packet_pointer(an_packet), an_packet_size(an_packet));
+}
 
 Task::Task(std::string const& name)
     : TaskBase(name)
@@ -82,6 +89,19 @@ void Task::updateHook()
         }
         else
         {
+            while(_external_velocity_in.read(external_velocity)){
+                an_packet_t* an_packet;
+                external_body_velocity_packet_t body_vel_packet;
+                memset(&body_vel_packet, 0, sizeof(external_body_velocity_packet_t));
+                body_vel_packet.velocity[0] = external_velocity.velocity.x();
+                body_vel_packet.velocity[1] = external_velocity.velocity.y();
+                body_vel_packet.velocity[2] = external_velocity.velocity.z();
+                body_vel_packet.standard_deviation = _external_velocity_std_dev.get();
+
+                an_packet = encode_external_body_velocity_packet(&body_vel_packet);
+                an_packet_transmit(an_packet);
+                an_packet_free(&an_packet);
+            }
             if ((bytes_received = PollComport(an_decoder_pointer(&an_decoder), an_decoder_size(&an_decoder))) > 0)
             {
                 /* increment the decode buffer length by the number of bytes received */

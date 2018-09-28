@@ -37,20 +37,11 @@ task_context "Task" do
     property("NED2NWU", "bool", true).
         doc 'Switch IMU axis convention from NED(Advanced Navigation default) to NWU(Rock default)' 
     property("local_cartesian_origin", "base/Vector3d").doc("Origin of local cartesion coordinate system in lat/lon/height")
+    property("external_velocity_std_dev", "float", 0.001)
 
-    # An input port, i.e. an object from which the component gets data from
-    # other components' outputs
-    #
-    # Data can be retrieved using _input.read(value), which returns true if data
-    # was available, and false otherwise. _input.connected() returns if this
-    # input is connected to an output or not.
-    #input_port "input", "/std/string"
+    #Input of external velocity. e.g. odometry in robot frame
+    input_port "external_velocity_in", "/base/samples/RigidBodyState"
 
-    # An output port, i.e. an object to which the component pushes data so that
-    # it is transmitted to other components' inputs
-    #
-    # Data can be written using _output.write(value). _output.connected() returns
-    # if this output is connected to an input or not.
     output_port "imu_samples", "base/samples/IMUSensors"
     output_port "imu_pose", "base/samples/RigidBodyState"
     output_port "gps_solution", "/gps_base/Solution"
