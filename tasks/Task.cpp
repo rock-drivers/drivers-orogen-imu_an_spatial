@@ -166,9 +166,9 @@ void Task::updateHook()
                                 case gnss_fix_3d: sol.positionType = gps_base::AUTONOMOUS; break;
                                 case gnss_fix_sbas: sol.positionType = gps_base::DIFFERENTIAL; break;
                                 case gnss_fix_differential: sol.positionType = gps_base::DIFFERENTIAL; break;
+                                case gnss_fix_omnistar: sol.positionType = gps_base::DIFFERENTIAL; break;
                                 case gnss_fix_rtk_float: sol.positionType = gps_base::RTK_FLOAT; break;
                                 case gnss_fix_rtk_fixed: sol.positionType = gps_base::RTK_FIXED; break;
-                                case gnss_fix_omnistar: sol.positionType = gps_base::OMNISTAR; break;
                                 default: sol.positionType = gps_base::INVALID; break;
                             }
 
