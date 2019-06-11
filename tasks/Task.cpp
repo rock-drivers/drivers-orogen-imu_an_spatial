@@ -4,7 +4,6 @@
 #include <rtt/extras/FileDescriptorActivity.hpp>
 #include <math.h>
 #include <imu_an_spatial/rs232/rs232.h>
-#include <imu_an_spatial/an_packet_protocol.h>
 #include <base-logging/Logging.hpp>
 #include <base/Time.hpp>
 #include <iostream>
