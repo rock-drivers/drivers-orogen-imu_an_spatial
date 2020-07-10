@@ -17,5 +17,5 @@
   <depend package="base/types" />
   <depend package="drivers/imu_an_spatial" />
   <depend package="drivers/orogen/gps_base" />
-  <!--depend package="geographic" /-->
+  <depend package="geographic" />
 </package>
