@@ -15,6 +15,12 @@
 using namespace imu_an_spatial;
 using namespace GeographicLib;
 
+int an_packet_transmit(an_packet_t *an_packet)
+{
+    an_packet_encode(an_packet);
+    return SendBuf(an_packet_pointer(an_packet), an_packet_size(an_packet));
+}
+
 Task::Task(std::string const& name)
     : TaskBase(name)
 {
@@ -65,8 +71,11 @@ void Task::updateHook()
 
     base::samples::IMUSensors imu_sample;
     base::samples::RigidBodyState imu_pose;
-    gps::Solution sol;
+    gps_base::Solution sol;
+    base::samples::RigidBodyState external_velocity;
+    gps_base::Errors errors;
 
+    
     if (fd_activity)
     {
         if (fd_activity->hasError())
@@ -79,6 +88,19 @@ void Task::updateHook()
         }
         else
         {
+            while(_external_velocity_in.read(external_velocity) == RTT::NewData){
+                an_packet_t* an_packet;
+                external_body_velocity_packet_t body_vel_packet;
+                memset(&body_vel_packet, 0, sizeof(external_body_velocity_packet_t));
+                body_vel_packet.velocity[0] = external_velocity.velocity.x();
+                body_vel_packet.velocity[1] = external_velocity.velocity.y();
+                body_vel_packet.velocity[2] = external_velocity.velocity.z();
+                body_vel_packet.standard_deviation = _external_velocity_std_dev.get();
+
+                an_packet = encode_external_body_velocity_packet(&body_vel_packet);
+                an_packet_transmit(an_packet);
+                an_packet_free(&an_packet);
+            }
             if ((bytes_received = PollComport(an_decoder_pointer(&an_decoder), an_decoder_size(&an_decoder))) > 0)
             {
                 /* increment the decode buffer length by the number of bytes received */
@@ -139,14 +161,15 @@ void Task::updateHook()
 
                             gnss_fix_type_e gnss_fix_type = static_cast<gnss_fix_type_e>(system_state_packet.filter_status.b.gnss_fix_type);
                             switch(gnss_fix_type){
-                                case gnss_fix_none: sol.positionType = gps::NO_SOLUTION; break;
-                                case gnss_fix_2d: sol.positionType = gps::AUTONOMOUS_2D; break;
-                                case gnss_fix_3d: sol.positionType = gps::AUTONOMOUS; break;
-                                case gnss_fix_sbas: sol.positionType = gps::DIFFERENTIAL; break;
-                                case gnss_fix_differential: sol.positionType = gps::DIFFERENTIAL; break;
-                                case gnss_fix_rtk_float: sol.positionType = gps::RTK_FLOAT; break;
-                                case gnss_fix_rtk_fixed: sol.positionType = gps::RTK_FIXED; break;
-                                default: sol.positionType = gps::INVALID; break;
+                                case gnss_fix_none: sol.positionType = gps_base::NO_SOLUTION; break;
+                                case gnss_fix_2d: sol.positionType = gps_base::AUTONOMOUS_2D; break;
+                                case gnss_fix_3d: sol.positionType = gps_base::AUTONOMOUS; break;
+                                case gnss_fix_sbas: sol.positionType = gps_base::DIFFERENTIAL; break;
+                                case gnss_fix_differential: sol.positionType = gps_base::DIFFERENTIAL; break;
+                                case gnss_fix_omnistar: sol.positionType = gps_base::DIFFERENTIAL; break;
+                                case gnss_fix_rtk_float: sol.positionType = gps_base::RTK_FLOAT; break;
+                                case gnss_fix_rtk_fixed: sol.positionType = gps_base::RTK_FIXED; break;
+                                default: sol.positionType = gps_base::INVALID; break;
                             }
 
                             sol.latitude = system_state_packet.latitude * RADIANS_TO_DEGREES;
